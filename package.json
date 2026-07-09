@@ -1,0 +1,23 @@
+{
+  "name": "eventflow-analytics",
+  "version": "1.0.0",
+  "description": "EventFlow Analytics - Web Analytics Platform",
+  "main": "server/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "server": "node server/index.js",
+    "dashboard:install": "npm --prefix dashboard install",
+    "dashboard:dev": "npm --prefix dashboard run dev",
+    "dashboard:build": "npm --prefix dashboard run build",
+    "dev": "concurrently \"npm run server\" \"npm run dashboard:dev\""
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

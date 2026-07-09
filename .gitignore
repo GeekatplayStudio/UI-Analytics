@@ -1,0 +1,36 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build outputs
+dist/
+build/
+.oxlintrc.json
+
+# Local databases and logs
+*.log
+server/database.json
+server/database.sqlite
+server/database.sqlite-journal
+server/database.sqlite-wal
+server/database.sqlite-shm
+
+# OS files
+.DS_Store
+.DS_Store?
+ehthumbs.db
+Thumbs.db
+
+# IDE and local configurations
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
