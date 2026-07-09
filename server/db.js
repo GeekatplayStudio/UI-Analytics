@@ -108,7 +108,8 @@ export async function insertEvents(eventsList) {
       viewport_x: e.viewport_x !== undefined ? e.viewport_x : null,
       viewport_y: e.viewport_y !== undefined ? e.viewport_y : null,
       scroll_depth_percent: e.scroll_depth_percent !== undefined ? e.scroll_depth_percent : null,
-      page_url: e.page_url || ''
+      page_url: e.page_url || '',
+      error_message: e.error_message || null
     });
   });
 
@@ -303,10 +304,28 @@ export async function getFrictionMetrics(domainId, sessionId = null) {
         element_id: e.element_id,
         element_tag: e.element_tag,
         element_class: e.element_class,
-        delays: []
+        delays: [],
+        rage_clicks: 0,
+        dead_clicks: 0,
+        input_errors: 0,
+        error_messages: []
       };
     }
-    grouped[key].delays.push(e.time_delta_ms);
+    
+    if (e.event_type === 'click' || e.event_type.startsWith('input')) {
+      grouped[key].delays.push(e.time_delta_ms);
+    }
+
+    if (e.event_type === 'rage_click') {
+      grouped[key].rage_clicks += 1;
+    } else if (e.event_type === 'dead_click') {
+      grouped[key].dead_clicks += 1;
+    } else if (e.event_type === 'input_error') {
+      grouped[key].input_errors += 1;
+      if (e.error_message && !grouped[key].error_messages.includes(e.error_message)) {
+        grouped[key].error_messages.push(e.error_message);
+      }
+    }
   });
 
   const results = Object.values(grouped).map(group => {
@@ -316,9 +335,9 @@ export async function getFrictionMetrics(domainId, sessionId = null) {
       : 0;
 
     let frictionLevel = 'low';
-    if (avgDelay > 8000) {
+    if (avgDelay > 8000 || group.rage_clicks > 0 || group.input_errors > 1) {
       frictionLevel = 'high';
-    } else if (avgDelay > 3000) {
+    } else if (avgDelay > 3000 || group.dead_clicks > 0 || group.input_errors > 0) {
       frictionLevel = 'medium';
     }
 
@@ -327,7 +346,11 @@ export async function getFrictionMetrics(domainId, sessionId = null) {
       element_tag: group.element_tag,
       element_class: group.element_class,
       avg_delay_ms: avgDelay,
-      interactions: count,
+      interactions: count || (group.rage_clicks + group.dead_clicks + group.input_errors),
+      rage_clicks: group.rage_clicks,
+      dead_clicks: group.dead_clicks,
+      input_errors: group.input_errors,
+      error_messages: group.error_messages,
       friction_level: frictionLevel
     };
   });
