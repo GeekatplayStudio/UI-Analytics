@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import {
@@ -184,6 +184,137 @@ app.get('/api/friction', async (req, res) => {
     const list = await getFrictionMetrics(domain_id, session_id || null);
     res.json(list);
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Code Analysis and Auto-Injection APIs
+app.post('/api/integration/analyze', async (req, res) => {
+  const { file_path, domain_id } = req.body;
+  if (!file_path || !domain_id) {
+    return res.status(400).json({ error: 'file_path and domain_id are required' });
+  }
+
+  if (!existsSync(file_path)) {
+    return res.status(404).json({ error: `File not found at: ${file_path}` });
+  }
+
+  try {
+    const originalContent = readFileSync(file_path, 'utf8');
+    const alreadyInjected = originalContent.includes('eventflow-tracker');
+
+    // Find closing head tag
+    const headTag = '</head>';
+    const headIndex = originalContent.indexOf(headTag);
+
+    if (headIndex === -1) {
+      return res.json({
+        success: true,
+        alreadyInjected,
+        suggestedLine: 0,
+        originalPreview: 'No </head> tag found in HTML file. The script will be injected at the very top.',
+        modifiedPreview: '<!-- Injected at top -->\n<script id="eventflow-tracker" ...>'
+      });
+    }
+
+    // Split file into lines to identify line numbers
+    const lines = originalContent.split('\n');
+    let suggestedLine = 0;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes(headTag)) {
+        suggestedLine = i + 1; // 1-indexed
+        break;
+      }
+    }
+
+    const host = req.headers.host || 'localhost:3001';
+    const protocol = req.secure ? 'https' : 'http';
+    const trackerHost = `${protocol}://${host}`;
+
+    const snippet = `  <!-- EventFlow Analytics -->
+  <script>
+    (function(w,d,s,o,f,js,fjs){
+      w['EventFlowObject']=o;w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)};
+      js=d.createElement(s),fjs=d.getElementsByTagName(s)[0];
+      js.id='eventflow-tracker';js.src=f;js.async=1;fjs.parentNode.insertBefore(js,fjs);
+    }(window,document,'script','ef','${trackerHost}/tracker.js'));
+    ef('init', '${domain_id}');
+  </script>
+  <!-- End EventFlow Analytics -->`;
+
+    // Preview ranges (approx 5 lines before </head> tag)
+    const previewStartIdx = Math.max(0, suggestedLine - 6);
+    const originalPreviewLines = lines.slice(previewStartIdx, suggestedLine);
+    const originalPreview = originalPreviewLines.join('\n');
+
+    const modifiedPreviewLines = [...lines.slice(previewStartIdx, suggestedLine - 1), snippet, lines[suggestedLine - 1]];
+    const modifiedPreview = modifiedPreviewLines.join('\n');
+
+    return res.json({
+      success: true,
+      alreadyInjected,
+      suggestedLine,
+      originalPreview,
+      modifiedPreview
+    });
+  } catch (error) {
+    console.error('File analysis failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/integration/inject', async (req, res) => {
+  const { file_path, domain_id } = req.body;
+  if (!file_path || !domain_id) {
+    return res.status(400).json({ error: 'file_path and domain_id are required' });
+  }
+
+  if (!existsSync(file_path)) {
+    return res.status(404).json({ error: `File not found at: ${file_path}` });
+  }
+
+  try {
+    const originalContent = readFileSync(file_path, 'utf8');
+
+    // Create script snippet
+    const host = req.headers.host || 'localhost:3001';
+    const protocol = req.secure ? 'https' : 'http';
+    const trackerHost = `${protocol}://${host}`;
+
+    const snippet = `  <!-- EventFlow Analytics -->
+  <script>
+    (function(w,d,s,o,f,js,fjs){
+      w['EventFlowObject']=o;w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)};
+      js=d.createElement(s),fjs=d.getElementsByTagName(s)[0];
+      js.id='eventflow-tracker';js.src=f;js.async=1;fjs.parentNode.insertBefore(js,fjs);
+    }(window,document,'script','ef','${trackerHost}/tracker.js'));
+    ef('init', '${domain_id}');
+  </script>
+  <!-- End EventFlow Analytics -->`;
+
+    let modifiedContent = '';
+    const headTag = '</head>';
+    const headIndex = originalContent.indexOf(headTag);
+
+    if (headIndex !== -1) {
+      modifiedContent = originalContent.slice(0, headIndex) + snippet + '\n' + originalContent.slice(headIndex);
+    } else {
+      // Fallback: prepend at very top of file
+      modifiedContent = snippet + '\n' + originalContent;
+    }
+
+    // 1. Create a backup file
+    writeFileSync(file_path + '.bak', originalContent, 'utf8');
+
+    // 2. Overwrite file with snippet injected
+    writeFileSync(file_path, modifiedContent, 'utf8');
+
+    return res.json({
+      success: true,
+      message: `Snippet successfully injected! A backup file has been created at ${file_path}.bak`
+    });
+  } catch (error) {
+    console.error('File injection failed:', error);
     res.status(500).json({ error: error.message });
   }
 });
