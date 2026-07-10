@@ -6,6 +6,7 @@ import Sandbox from './components/Sandbox';
 import DomainManager from './components/DomainManager';
 import FrictionAnalysis from './components/FrictionAnalysis';
 import SiteIntegration from './components/SiteIntegration';
+import ExampleSite from './components/ExampleSite';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('metrics');
@@ -123,6 +124,7 @@ export default function App() {
           { id: 'journey', label: '🗺️ User Journeys' },
           { id: 'funnels', label: '⏳ Funnel Conversions' },
           { id: 'friction', label: '🔍 UX Friction Overlay' },
+          { id: 'example', label: '🎮 Demo Walkthrough' },
           { id: 'integration', label: '🔌 Site Integration' },
           { id: 'sandbox', label: '🧪 Live Sandbox' }
         ].map(tab => (
@@ -175,6 +177,7 @@ export default function App() {
             {activeTab === 'journey' && <SessionJourney activeDomain={activeDomain} />}
             {activeTab === 'funnels' && <FunnelMetrics activeDomain={activeDomain} />}
             {activeTab === 'friction' && <FrictionAnalysis activeDomain={activeDomain} />}
+            {activeTab === 'example' && <ExampleSite activeDomain={activeDomain} />}
             {activeTab === 'integration' && <SiteIntegration activeDomain={activeDomain} />}
             {activeTab === 'sandbox' && <Sandbox activeDomain={activeDomain} />}
           </div>

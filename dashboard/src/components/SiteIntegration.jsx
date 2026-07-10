@@ -268,7 +268,7 @@ export default function SiteIntegration({ activeDomain }) {
         <div style={{ background: 'rgba(0,0,0,0.15)', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '12px' }}>
           {latestSession ? (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Testing active session: <strong style={{ color: 'var(--accent-secondary)' }}>{latestSession.id.substring(0, 8)}...</strong></span>
+              <span>Testing active session: <strong style={{ color: 'var(--accent-secondary)' }}>{latestSession.id.startsWith('walkthrough-') ? `🎮 Mission Session: ${latestSession.id.substring(20, 26)}` : latestSession.id.substring(0, 8) + '...'}</strong></span>
               <span className="badge badge-success" style={{ fontSize: '9px' }}>Connected</span>
             </div>
           ) : (

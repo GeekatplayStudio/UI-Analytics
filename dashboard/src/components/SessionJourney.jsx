@@ -142,7 +142,7 @@ export default function SessionJourney({ activeDomain }) {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600 }}>
                     <span style={{ color: isActive ? 'var(--accent-primary-hover)' : '#fff', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '180px' }}>
-                      Session ID: {s.id.substring(0, 8)}...
+                      {s.id.startsWith('walkthrough-') ? `🎮 Mission Session: ${s.id.substring(20, 26)}` : `Session ID: ${s.id.substring(0, 8)}...`}
                     </span>
                     <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{date}</span>
                   </div>
