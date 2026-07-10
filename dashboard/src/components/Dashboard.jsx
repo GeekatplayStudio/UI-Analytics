@@ -1,7 +1,197 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
+// Animated 3D Neural Network Flow Canvas Component
+function NeuralNetCanvas() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+
+    const nodes = [
+      { id: 'home', label: 'Home Page', x: -80, y: -30, z: -50 },
+      { id: 'products', label: 'Products specs', x: 80, y: -50, z: -20 },
+      { id: 'cart', label: 'Shopping Cart', x: 30, y: 50, z: 30 },
+      { id: 'checkout', label: 'Checkout Gate', x: -60, y: 60, z: -10 },
+      { id: 'contact', label: 'Contact Help', x: -30, y: -70, z: 60 },
+      { id: 'feedback', label: 'Survey Feedback', x: 70, y: 20, z: 80 }
+    ];
+
+    const links = [
+      { source: 0, target: 1 },
+      { source: 0, target: 4 },
+      { source: 1, target: 2 },
+      { source: 2, target: 3 },
+      { source: 3, target: 5 },
+      { source: 4, target: 5 },
+      { source: 1, target: 5 }
+    ];
+
+    const particles = [];
+    for (let i = 0; i < 16; i++) {
+      particles.push({
+        linkIdx: Math.floor(Math.random() * links.length),
+        progress: Math.random(),
+        speed: 0.005 + Math.random() * 0.008
+      });
+    }
+
+    let angleX = 0.4;
+    let angleY = 0.4;
+    let targetAngleX = 0.3;
+    let targetAngleY = 0.3;
+
+    const handleMouseMove = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left - rect.width / 2;
+      const my = e.clientY - rect.top - rect.height / 2;
+      targetAngleY = (mx / rect.width) * 1.5;
+      targetAngleX = (my / rect.height) * 1.5;
+    };
+
+    const handleMouseLeave = () => {
+      targetAngleX = 0.3;
+      targetAngleY = 0.3;
+    };
+
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+
+    const fov = 170;
+    const perspective = 190;
+
+    const renderLoop = () => {
+      angleX += (targetAngleX - angleX) * 0.08;
+      angleY += (targetAngleY - angleY) * 0.08;
+
+      const autoRotate = Date.now() * 0.00018;
+      const currentAngleY = angleY + autoRotate;
+
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+
+      ctx.clearRect(0, 0, width, height);
+
+      const centerX = width / 2;
+      const centerY = height / 2;
+
+      const cosX = Math.cos(angleX);
+      const sinX = Math.sin(angleX);
+      const cosY = Math.cos(currentAngleY);
+      const sinY = Math.sin(currentAngleY);
+
+      const projectedNodes = nodes.map(node => {
+        const x1 = node.x * cosY - node.z * sinY;
+        const z1 = node.x * sinY + node.z * cosY;
+
+        const y2 = node.y * cosX - z1 * sinX;
+        const z2 = node.y * sinX + z1 * cosX;
+
+        const finalZ = z2 + perspective;
+        const scale = fov / Math.max(10, finalZ);
+        
+        return {
+          ...node,
+          screenX: centerX + x1 * scale,
+          screenY: centerY + y2 * scale,
+          depth: finalZ,
+          scale: scale
+        };
+      });
+
+      links.forEach(link => {
+        const p1 = projectedNodes[link.source];
+        const p2 = projectedNodes[link.target];
+
+        const avgDepth = (p1.depth + p2.depth) / 2;
+        const alpha = Math.max(0.05, 1 - (avgDepth - 100) / 200);
+
+        ctx.beginPath();
+        ctx.moveTo(p1.screenX, p1.screenY);
+        ctx.lineTo(p2.screenX, p2.screenY);
+        
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.12})`;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      });
+
+      particles.forEach(p => {
+        const link = links[p.linkIdx];
+        const p1 = projectedNodes[link.source];
+        const p2 = projectedNodes[link.target];
+
+        p.progress += p.speed;
+        if (p.progress > 1) {
+          p.progress = 0;
+          p.linkIdx = Math.floor(Math.random() * links.length);
+        }
+
+        const px = p1.screenX + (p2.screenX - p1.screenX) * p.progress;
+        const py = p1.screenY + (p2.screenY - p1.screenY) * p.progress;
+        const size = 1.8 + (p1.scale + p2.scale) * 0.08;
+
+        ctx.beginPath();
+        ctx.arc(px, py, size, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+      });
+
+      projectedNodes
+        .sort((a, b) => b.depth - a.depth)
+        .forEach(node => {
+          const radius = 5.5 + node.scale * 0.04;
+          const alpha = Math.max(0.1, 1 - (node.depth - 100) / 200);
+
+          ctx.beginPath();
+          ctx.arc(node.screenX, node.screenY, radius, 0, Math.PI * 2);
+          ctx.fillStyle = node.id === 'checkout' ? '#ffffff' : '#a1a1aa';
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(node.screenX, node.screenY, radius * 2.2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.08})`;
+          ctx.fill();
+
+          ctx.font = `${Math.max(9.5, 8 + node.scale * 0.02)}px monospace`;
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.85})`;
+          ctx.textAlign = 'center';
+          ctx.fillText(node.label, node.screenX, node.screenY - radius - 5);
+        });
+
+      animationFrameId = requestAnimationFrame(renderLoop);
+    };
+
+    renderLoop();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, []);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '220px', overflow: 'hidden', background: 'rgba(0,0,0,0.18)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+      <canvas 
+        ref={canvasRef} 
+        style={{ width: '100%', height: '100%', cursor: 'pointer', display: 'block' }}
+      />
+      <div style={{ position: 'absolute', bottom: '8px', left: '12px', fontSize: '9px', color: 'var(--text-muted)', fontFamily: 'monospace', pointerEvents: 'none' }}>
+        3D Flow Parallax: Move mouse to skew angles
+      </div>
+    </div>
+  );
+}
 
 // Widget specifications catalog
 const WIDGET_SPECS = {
+  neuralNet: { name: '3D Neural Interaction Flow', desc: 'Interactive 3D particle mesh mapping live click flows' },
   traffic: { name: 'Traffic Trends', desc: 'Line chart detailing sessions over time' },
   interactions: { name: 'Interaction Breakdown', desc: 'Animated donut chart of captured events' },
   health: { name: 'UI Health & Friction', desc: '3D isometric bars tracking frustrations' },
@@ -17,7 +207,7 @@ export default function Dashboard({ activeDomain }) {
   const [friction, setFriction] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeWidgets, setActiveWidgets] = useState(['traffic', 'interactions', 'health', 'scroll', 'devices', 'topElements', 'feedback']);
+  const [activeWidgets, setActiveWidgets] = useState(['neuralNet', 'traffic', 'interactions', 'health', 'scroll', 'devices', 'topElements', 'feedback']);
   
   // Interactive tooltips
   const [hoveredDonutIdx, setHoveredDonutIdx] = useState(null);
@@ -332,6 +522,13 @@ export default function Dashboard({ activeDomain }) {
               </div>
 
               {/* CARD SPECIFIC RENDERS */}
+              
+              {/* 0. 3D NEURAL INTERACTION FLOW CANVAS */}
+              {wId === 'neuralNet' && (
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center' }}>
+                  <NeuralNetCanvas />
+                </div>
+              )}
               
               {/* 1. TRAFFIC LINE CHART */}
               {wId === 'traffic' && (
