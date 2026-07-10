@@ -73,18 +73,18 @@ export default function Sandbox({ activeDomain }) {
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '20px' }}>
       
       {/* Target Webpage Simulation */}
-      <div className="glass-card fade-in" style={{ border: '2px dashed var(--accent-primary)', position: 'relative' }}>
+      <div className="glass-card fade-in" style={{ border: '1px dashed var(--border-color-hover)', position: 'relative' }}>
         <div style={{
           position: 'absolute',
           top: '-12px',
           left: '20px',
           background: 'var(--bg-secondary)',
-          border: '1px solid var(--accent-primary)',
+          border: '1px solid var(--border-color)',
           borderRadius: '4px',
           padding: '2px 8px',
           fontSize: '11px',
-          fontWeight: 700,
-          color: 'var(--accent-primary-hover)',
+          fontWeight: 600,
+          color: 'var(--text-secondary)',
           textTransform: 'uppercase',
           letterSpacing: '0.05em'
         }}>
@@ -98,10 +98,10 @@ export default function Sandbox({ activeDomain }) {
             <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Mock Store Sandbox</span>
           </div>
           <div style={{ position: 'relative', padding: '6px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', fontSize: '13px', display: 'flex', gap: '8px' }}>
-            <span>🛒 Cart: <strong style={{ color: 'var(--accent-primary-hover)' }}>{cartCount}</strong></span>
+            <span>Cart: <strong style={{ color: 'var(--text-primary)' }}>{cartCount}</strong></span>
             <span style={{ color: 'var(--border-color)' }}>|</span>
             <span style={{ cursor: 'pointer' }} onClick={() => setWishlisted(!wishlisted)}>
-              {wishlisted ? '❤️ Saved' : '🤍 Save'}
+              {wishlisted ? 'Saved' : 'Save'}
             </span>
           </div>
         </div>
@@ -205,7 +205,7 @@ export default function Sandbox({ activeDomain }) {
               style={{ flex: 1 }}
               onClick={() => setWishlisted(!wishlisted)}
             >
-              {wishlisted ? '❤️ Saved' : '🤍 Wishlist'}
+              {wishlisted ? 'Saved' : 'Wishlist'}
             </button>
           </div>
 
@@ -221,7 +221,7 @@ export default function Sandbox({ activeDomain }) {
 
           {/* Input Fields to verify PII Filtering */}
           <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-secondary)' }}>PII Protection Validation Form</span>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>PII Protection Validation Form</span>
             
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" style={{ fontSize: '11px' }}>Newsletter Email (PII Sensitive)</label>
@@ -289,13 +289,13 @@ export default function Sandbox({ activeDomain }) {
         {/* Console Box */}
         <div style={{
           flex: 1,
-          background: '#04060b',
+          background: 'var(--bg-secondary)',
           borderRadius: '8px',
           border: '1px solid var(--border-color)',
           padding: '12px',
-          fontFamily: 'Courier New, Courier, monospace',
-          fontSize: '12px',
-          color: '#a5b4fc',
+          fontFamily: 'monospace',
+          fontSize: '12.5px',
+          color: 'var(--text-primary)',
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
@@ -312,22 +312,22 @@ export default function Sandbox({ activeDomain }) {
               const isSensitive = log.elClass?.includes('sensitive') || log.elId?.includes('password') || log.elId?.includes('email') || log.elId?.includes('private');
               return (
                 <div key={log.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#818cf8', fontWeight: 600 }}>
-                    <span>⚡ event_type: {log.type}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    <span>event_type: {log.type}</span>
                     <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{log.time}</span>
                   </div>
                   <div style={{ paddingLeft: '12px', marginTop: '2px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     {log.elTag && <span>tag: <strong style={{ color: '#fff' }}>{log.elTag}</strong></span>}
-                    {log.elId && <span>id: <strong style={{ color: 'var(--accent-secondary)' }}>{log.elId}</strong></span>}
+                    {log.elId && <span>id: <strong style={{ color: 'var(--text-primary)' }}>{log.elId}</strong></span>}
                     {log.elClass && (
-                      <span>classes: <strong style={{ color: '#93c5fd' }}>{log.elClass}</strong></span>
+                      <span>classes: <strong style={{ color: 'var(--text-muted)' }}>{log.elClass}</strong></span>
                     )}
                     {log.coords && <span>coordinates: {log.coords}</span>}
                     {log.depth !== undefined && <span>scroll_depth: {log.depth}%</span>}
-                    {log.delta !== undefined && <span>time_delta: <strong style={{ color: 'var(--accent-success)' }}>+{log.delta}ms</strong></span>}
+                    {log.delta !== undefined && <span>time_delta: <strong>+{log.delta}ms</strong></span>}
                     {isSensitive && (
                       <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', marginTop: '2px' }}>
-                        🛡️ PII PROTECTION ENFORCED (NO VALUE CAPTURED)
+                        PII PROTECTION ENFORCED (NO VALUE CAPTURED)
                       </span>
                     )}
                   </div>

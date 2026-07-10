@@ -343,7 +343,7 @@
 
   // Handle EventFlow queued calls before tracker loaded
   function processCommandQueue() {
-    const o = window['EventFlowObject'];
+    const o = window['EventFlowObject'] || 'ef';
     if (o && window[o]) {
       const queue = window[o].q || [];
       // Replace window function with direct execution
