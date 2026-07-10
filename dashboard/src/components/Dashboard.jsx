@@ -189,9 +189,261 @@ function NeuralNetCanvas() {
   );
 }
 
+// Animated 3D Competitive UX Orbit Benchmark Sphere Component
+function CompetitiveSphereCanvas({ metrics }) {
+  const canvasRef = useRef(null);
+  const [hoveredSite, setHoveredSite] = useState(null);
+
+  const conversionRate = metrics?.conversion_rate || 3.2;
+  const rageClicks = metrics?.rage_clicks || 0;
+  const avgDelay = metrics?.avg_delay_ms || 1200;
+  const activeScore = Math.max(30, Math.min(98, Math.round(76 + (conversionRate * 2.5) - (rageClicks * 4) - (avgDelay / 1000))));
+
+  const competitors = [
+    { name: 'Active Website (EventFlow)', score: activeScore, isSelf: true, color: '#ffffff', desc: 'Live telemetric performance tracking' },
+    { name: 'SaaS E-Commerce Average', score: 71, isSelf: false, color: '#a1a1aa', desc: 'Industry mid-tier conversion benchmark' },
+    { name: 'FullStory Top 10% Tier', score: 88, isSelf: false, color: '#10b981', desc: 'High-conversion interactive design benchmark' },
+    { name: 'Competitor Store Alpha', score: 55, isSelf: false, color: '#f59e0b', desc: 'Friction-heavy navigation layout with high bounce rate' },
+    { name: 'Competitor Store Beta', score: 42, isSelf: false, color: '#ef4444', desc: 'Slow response times & visual frustration points' }
+  ];
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+
+    let angleX = 0.4;
+    let angleY = 0.4;
+    let targetAngleX = 0.3;
+    let targetAngleY = 0.3;
+
+    const handleMouseMove = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left - rect.width / 2;
+      const my = e.clientY - rect.top - rect.height / 2;
+      targetAngleY = (mx / rect.width) * 1.5;
+      targetAngleX = (my / rect.height) * 1.5;
+
+      const width = canvas.width;
+      const height = canvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const cosX = Math.cos(angleX);
+      const sinX = Math.sin(angleX);
+      const autoRotate = Date.now() * 0.0001;
+      const cosY = Math.cos(angleY + autoRotate);
+      const sinY = Math.sin(angleY + autoRotate);
+
+      let found = null;
+
+      competitors.forEach((c, idx) => {
+        const orbitRadius = (100 - c.score) * 1.8;
+        const orbitAngle = (idx * (Math.PI * 2) / competitors.length) + (Date.now() * 0.0002);
+        
+        const cx = Math.cos(orbitAngle) * orbitRadius;
+        const cz = Math.sin(orbitAngle) * orbitRadius;
+        const cy = 0;
+
+        const x1 = cx * cosY - cz * sinY;
+        const z1 = cx * sinY + cz * cosY;
+        const y2 = cy * cosX - z1 * sinX;
+        const z2 = cy * sinX + z1 * cosX;
+
+        const scale = 170 / (z2 + 190);
+        const screenX = centerX + x1 * scale;
+        const screenY = centerY + y2 * scale;
+
+        const distance = Math.hypot(e.clientX - rect.left - screenX, e.clientY - rect.top - screenY);
+        if (distance < 14) {
+          found = c;
+        }
+      });
+      setHoveredSite(found);
+    };
+
+    const handleMouseLeave = () => {
+      targetAngleX = 0.3;
+      targetAngleY = 0.3;
+      setHoveredSite(null);
+    };
+
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+
+    const fov = 170;
+    const perspective = 190;
+
+    const renderLoop = () => {
+      angleX += (targetAngleX - angleX) * 0.08;
+      angleY += (targetAngleY - angleY) * 0.08;
+
+      const autoRotate = Date.now() * 0.00015;
+      const currentAngleY = angleY + autoRotate;
+
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+
+      ctx.clearRect(0, 0, width, height);
+
+      const centerX = width / 2;
+      const centerY = height / 2;
+
+      const cosX = Math.cos(angleX);
+      const sinX = Math.sin(angleX);
+      const cosY = Math.cos(currentAngleY);
+      const sinY = Math.sin(currentAngleY);
+
+      const glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 28);
+      glowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.20)');
+      glowGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.06)');
+      glowGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 28, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.fill();
+
+      const tiers = [90, 70, 50];
+      tiers.forEach(tier => {
+        const orbitRadius = (100 - tier) * 1.8;
+        ctx.beginPath();
+        
+        for (let a = 0; a <= Math.PI * 2; a += 0.08) {
+          const cx = Math.cos(a) * orbitRadius;
+          const cz = Math.sin(a) * orbitRadius;
+          const cy = 0;
+
+          const x1 = cx * cosY - cz * sinY;
+          const z1 = cx * sinY + cz * cosY;
+          const y2 = cy * cosX - z1 * sinX;
+          const z2 = cy * sinX + z1 * cosX;
+
+          const scale = fov / (z2 + perspective);
+          const sx = centerX + x1 * scale;
+          const sy = centerY + y2 * scale;
+
+          if (a === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        }
+        ctx.strokeStyle = `rgba(255, 255, 255, ${Math.max(0.02, (tier / 100) * 0.05)})`;
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+
+        ctx.font = '8px monospace';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.fillText(`${tier}%`, centerX + orbitRadius * Math.cos(currentAngleY), centerY + 4);
+      });
+
+      const projectedCompetitors = competitors.map((c, idx) => {
+        const orbitRadius = (100 - c.score) * 1.8;
+        const orbitAngle = (idx * (Math.PI * 2) / competitors.length) + (Date.now() * (0.00008 + idx * 0.00004));
+        
+        const cx = Math.cos(orbitAngle) * orbitRadius;
+        const cz = Math.sin(orbitAngle) * orbitRadius;
+        const cy = Math.sin(orbitAngle * 2.2) * 8;
+
+        const x1 = cx * cosY - cz * sinY;
+        const z1 = cx * sinY + cz * cosY;
+        const y2 = cy * cosX - z1 * sinX;
+        const z2 = cy * sinX + z1 * cosX;
+
+        const finalZ = z2 + perspective;
+        const scale = fov / Math.max(10, finalZ);
+
+        return {
+          ...c,
+          screenX: centerX + x1 * scale,
+          screenY: centerY + y2 * scale,
+          depth: finalZ,
+          scale: scale
+        };
+      });
+
+      projectedCompetitors
+        .sort((a, b) => b.depth - a.depth)
+        .forEach(c => {
+          const radius = 5 + c.scale * 0.03;
+          const alpha = Math.max(0.1, 1 - (c.depth - 100) / 200);
+
+          ctx.beginPath();
+          ctx.arc(c.screenX, c.screenY, radius, 0, Math.PI * 2);
+          ctx.fillStyle = c.color;
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(c.screenX, c.screenY, radius * 2.0, 0, Math.PI * 2);
+          ctx.fillStyle = c.isSelf ? `rgba(255, 255, 255, ${alpha * 0.12})` : `rgba(255, 255, 255, ${alpha * 0.04})`;
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.lineTo(c.screenX, c.screenY);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.03})`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+
+          ctx.font = `${Math.max(9, 7.5 + c.scale * 0.015)}px monospace`;
+          ctx.fillStyle = c.isSelf ? '#fff' : `rgba(161, 161, 170, ${alpha * 0.85})`;
+          ctx.textAlign = 'center';
+          ctx.fillText(`${c.isSelf ? '★ ' : ''}${c.name} (${c.score}%)`, c.screenX, c.screenY - radius - 5);
+        });
+
+      animationFrameId = requestAnimationFrame(renderLoop);
+    };
+
+    renderLoop();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [activeScore]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+      <div style={{ position: 'relative', width: '100%', height: '180px', overflow: 'hidden', background: 'rgba(0,0,0,0.18)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+        <canvas 
+          ref={canvasRef} 
+          style={{ width: '100%', height: '100%', cursor: 'pointer', display: 'block' }}
+        />
+        <div style={{ position: 'absolute', top: '8px', left: '12px', fontSize: '9px', color: 'var(--text-muted)', fontFamily: 'monospace', pointerEvents: 'none' }}>
+          Orbit proximity maps proximity to UX perfection (100% Core)
+        </div>
+      </div>
+
+      <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', padding: '10px 12px', borderRadius: '6px', minHeight: '52px', fontSize: '11px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        {hoveredSite ? (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ color: '#fff', fontWeight: 600 }}>{hoveredSite.name}</span>
+              <span style={{ color: hoveredSite.isSelf ? 'var(--text-primary)' : hoveredSite.color, fontWeight: 'bold' }}>Score: {hoveredSite.score}%</span>
+            </div>
+            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{hoveredSite.desc}</p>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+            Hover cursor over orbit nodes to display benchmarking comparison scores
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Widget specifications catalog
 const WIDGET_SPECS = {
   neuralNet: { name: '3D Neural Interaction Flow', desc: 'Interactive 3D particle mesh mapping live click flows' },
+  competitiveSphere: { name: '3D UX Benchmarking Sphere', desc: 'Concentric 3D orbits comparing website score indicators against competitors' },
   traffic: { name: 'Traffic Trends', desc: 'Line chart detailing sessions over time' },
   interactions: { name: 'Interaction Breakdown', desc: 'Animated donut chart of captured events' },
   health: { name: 'UI Health & Friction', desc: '3D isometric bars tracking frustrations' },
@@ -207,7 +459,7 @@ export default function Dashboard({ activeDomain }) {
   const [friction, setFriction] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeWidgets, setActiveWidgets] = useState(['neuralNet', 'traffic', 'interactions', 'health', 'scroll', 'devices', 'topElements', 'feedback']);
+  const [activeWidgets, setActiveWidgets] = useState(['neuralNet', 'competitiveSphere', 'traffic', 'interactions', 'health', 'scroll', 'devices', 'topElements', 'feedback']);
   
   // Interactive tooltips
   const [hoveredDonutIdx, setHoveredDonutIdx] = useState(null);
@@ -527,6 +779,13 @@ export default function Dashboard({ activeDomain }) {
               {wId === 'neuralNet' && (
                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center' }}>
                   <NeuralNetCanvas />
+                </div>
+              )}
+
+              {/* 0B. 3D COMPETITIVE UX BENCHMARK SPHERE */}
+              {wId === 'competitiveSphere' && (
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center' }}>
+                  <CompetitiveSphereCanvas metrics={metrics} />
                 </div>
               )}
               
