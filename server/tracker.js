@@ -432,9 +432,125 @@
     }
   }
 
+  // Inject visual slide-out feedback HTML button and form widgets
+  function initFeedbackWidget() {
+    if (document.getElementById('ef-feedback-tab')) return;
+
+    const tab = document.createElement('div');
+    tab.id = 'ef-feedback-tab';
+    tab.innerText = 'Feedback';
+    tab.style.position = 'fixed';
+    tab.style.bottom = '20px';
+    tab.style.right = '20px';
+    tab.style.background = '#27272a';
+    tab.style.color = '#f4f4f5';
+    tab.style.border = '1px solid #3f3f46';
+    tab.style.borderRadius = '6px';
+    tab.style.padding = '8px 14px';
+    tab.style.fontSize = '12px';
+    tab.style.fontWeight = '600';
+    tab.style.cursor = 'pointer';
+    tab.style.zIndex = '99999';
+    tab.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+    tab.style.transition = 'background 0.2s';
+    
+    tab.onmouseover = function() { tab.style.background = '#3f3f46'; };
+    tab.onmouseout = function() { tab.style.background = '#27272a'; };
+
+    const modal = document.createElement('div');
+    modal.id = 'ef-feedback-modal';
+    modal.style.position = 'fixed';
+    modal.style.bottom = '70px';
+    modal.style.right = '20px';
+    modal.style.width = '280px';
+    modal.style.background = '#18181b';
+    modal.style.border = '1px solid #27272a';
+    modal.style.borderRadius = '8px';
+    modal.style.padding = '16px';
+    modal.style.boxShadow = '0 10px 25px rgba(0,0,0,0.6)';
+    modal.style.zIndex = '99999';
+    modal.style.display = 'none';
+    modal.style.flexDirection = 'column';
+    modal.style.gap = '12px';
+    modal.style.fontFamily = 'sans-serif';
+    modal.style.color = '#f4f4f5';
+
+    modal.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #27272a;padding-bottom:8px;">
+        <span style="font-size:13px;font-weight:600;">Share Feedback</span>
+        <span id="ef-feedback-close" style="cursor:pointer;font-size:14px;color:#a1a1aa;">&times;</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <span style="font-size:11px;color:#a1a1aa;">Was this page easy to use?</span>
+        <div style="display:flex;gap:8px;">
+          <button id="ef-btn-yes" type="button" style="flex:1;background:#27272a;border:1px solid #3f3f46;color:#f4f4f5;border-radius:4px;padding:6px;font-size:11.5px;cursor:pointer;outline:none;">Yes</button>
+          <button id="ef-btn-no" type="button" style="flex:1;background:#27272a;border:1px solid #3f3f46;color:#f4f4f5;border-radius:4px;padding:6px;font-size:11.5px;cursor:pointer;outline:none;">No</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <span style="font-size:11px;color:#a1a1aa;">Tell us details (optional):</span>
+        <textarea id="ef-feedback-text" placeholder="Explain your experience..." style="width:100%;height:60px;background:#09090b;border:1px solid #27272a;border-radius:4px;color:#f4f4f5;padding:6px;font-size:11.5px;resize:none;outline:none;box-sizing:border-box;"></textarea>
+      </div>
+      <button id="ef-feedback-submit" type="button" style="width:100%;background:#f4f4f5;border:none;color:#18181b;border-radius:4px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;">Submit</button>
+    `;
+
+    document.body.appendChild(tab);
+    document.body.appendChild(modal);
+
+    let rating = null;
+    const btnYes = modal.querySelector('#ef-btn-yes');
+    const btnNo = modal.querySelector('#ef-btn-no');
+    
+    btnYes.onclick = function() {
+      rating = 'yes';
+      btnYes.style.background = '#f4f4f5';
+      btnYes.style.color = '#18181b';
+      btnNo.style.background = '#27272a';
+      btnNo.style.color = '#f4f4f5';
+    };
+
+    btnNo.onclick = function() {
+      rating = 'no';
+      btnNo.style.background = '#f4f4f5';
+      btnNo.style.color = '#18181b';
+      btnYes.style.background = '#27272a';
+      btnYes.style.color = '#f4f4f5';
+    };
+
+    modal.querySelector('#ef-feedback-close').onclick = function() {
+      modal.style.display = 'none';
+    };
+
+    tab.onclick = function() {
+      modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+    };
+
+    modal.querySelector('#ef-feedback-submit').onclick = function() {
+      const comments = modal.querySelector('#ef-feedback-text').value || '';
+      queueEvent('user_feedback', {
+        page_url: window.location.href,
+        element_id: 'feedback-modal-submission',
+        error_message: comments.substring(0, 500),
+        version: rating || 'none'
+      });
+
+      modal.innerHTML = `
+        <div style="text-align:center;padding:16px 0;font-size:12px;color:#a1a1aa;">
+          Thank you for sharing your feedback!
+        </div>
+      `;
+
+      setTimeout(() => {
+        modal.style.display = 'none';
+        tab.style.display = 'none';
+      }, 1800);
+    };
+  }
+
   // Boot the tracker
   initListeners();
   processCommandQueue();
+  initFeedbackWidget();
 
   console.log('[EventFlow] Tracker initialized and listening.');
 })();

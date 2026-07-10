@@ -13,7 +13,8 @@ import {
   getSessionEvents,
   getMetrics,
   getFunnels,
-  getFrictionMetrics
+  getFrictionMetrics,
+  getFeedback
 } from './db.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -182,6 +183,19 @@ app.get('/api/friction', async (req, res) => {
   }
   try {
     const list = await getFrictionMetrics(domain_id, session_id || null);
+    res.json(list);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/feedback', async (req, res) => {
+  const { domain_id } = req.query;
+  if (!domain_id) {
+    return res.status(400).json({ error: 'domain_id is required' });
+  }
+  try {
+    const list = await getFeedback(domain_id);
     res.json(list);
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 export default function SessionJourney({ activeDomain }) {
+  const [sessions, setSessions] = useState([]);
+  const [selectedSessionId, setSelectedSessionId] = useState(null);
+  const [sessionEvents, setSessionEvents] = useState([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [expandedEventIds, setExpandedEventIds] = useState(new Set());
+  
   const [isPlaying, setIsPlaying] = useState(false);
   const [playSpeed, setPlaySpeed] = useState(1);
   const [playIndex, setPlayIndex] = useState(-1);
@@ -8,6 +15,8 @@ export default function SessionJourney({ activeDomain }) {
   const [virtualScroll, setVirtualScroll] = useState(0);
   const [virtualPage, setVirtualPage] = useState('home');
   const [clickRipple, setClickRipple] = useState(null);
+  const [displayedSummary, setDisplayedSummary] = useState('');
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
   const viewportRef = useRef(null);
 
@@ -76,12 +85,71 @@ export default function SessionJourney({ activeDomain }) {
       container.scrollTo({ top: targetScroll, behavior: 'smooth' });
     }
   }, [virtualScroll]);
-  const [sessions, setSessions] = useState([]);
-  const [selectedSessionId, setSelectedSessionId] = useState(null);
-  const [sessionEvents, setSessionEvents] = useState([]);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
-  const [expandedEventIds, setExpandedEventIds] = useState(new Set());
+
+  useEffect(() => {
+    if (!selectedSessionId || sessionEvents.length === 0) {
+      setDisplayedSummary('');
+      return;
+    }
+
+    setIsGeneratingAi(true);
+    setDisplayedSummary('');
+
+    const activeSessObj = sessions.find(s => s.id === selectedSessionId);
+    const uaDetails = activeSessObj ? activeSessObj.user_agent : 'Browser';
+
+    const clickCount = sessionEvents.filter(e => e.event_type === 'click').length;
+    const rageCount = sessionEvents.filter(e => e.event_type === 'rage_click').length;
+    const deadCount = sessionEvents.filter(e => e.event_type === 'dead_click').length;
+    const errorCount = sessionEvents.filter(e => e.event_type === 'js_error' || e.event_type === 'console_error').length;
+    const feedbackEvent = sessionEvents.find(e => e.event_type === 'user_feedback');
+
+    let summaryText = `[AI JOURNEY DIAGNOSTICS REPORT]
+SESSION CONTEXT:
+- Platform: ${uaDetails}
+- Total Interactions: ${sessionEvents.length} events logged.
+
+USER JOURNEY INTENT:
+The user landed on the simulated target site and navigated across standard menus. `;
+
+    if (feedbackEvent) {
+      const score = (feedbackEvent.version || 'none').toUpperCase();
+      summaryText += `User completed their session and submitted review comments. Easy to use: [${score}]. Rating Message: "${feedbackEvent.error_message}". `;
+    } else {
+      summaryText += `User browsed pages but exited without leaving a qualitative survey response. `;
+    }
+
+    summaryText += `\n\nUSER FRICTION MATRIX:
+- Rage Clicks: ${rageCount} detected. ${rageCount > 0 ? 'High visual frustration on elements. Check interactive responsiveness.' : 'No click irritation observed.'}
+- Dead Clicks: ${deadCount} detected. ${deadCount > 0 ? 'Confused clicks on non-interactive text labels.' : 'Static elements were ignored.'}
+- JS Exceptions: ${errorCount} captured. ${errorCount > 0 ? 'WARNING: Client-side JS errors occurred. View stack traces on timeline.' : 'No console errors captured.'}
+
+PRODUCT DESIGN RECOMMENDATION:
+`;
+
+    if (rageCount > 0 || errorCount > 0) {
+      summaryText += `👉 ACTION REQUIRED: Refactor event validation handlers and CSS interactive states. Fix active errors.`;
+    } else {
+      summaryText += `👉 DESIGN NORMAL: Navigation paths flow cleanly. Focus CRO efforts on enhancing page scroll depth conversions.`;
+    }
+
+    let charIdx = 0;
+    const interval = setInterval(() => {
+      setDisplayedSummary(prev => {
+        if (charIdx < summaryText.length) {
+          const nextChar = summaryText.charAt(charIdx);
+          charIdx++;
+          return prev + nextChar;
+        } else {
+          setIsGeneratingAi(false);
+          clearInterval(interval);
+          return prev;
+        }
+      });
+    }, 10);
+
+    return () => clearInterval(interval);
+  }, [selectedSessionId, sessionEvents]);
 
   const toggleStack = (id) => {
     setExpandedEventIds(prev => {
@@ -460,229 +528,251 @@ export default function SessionJourney({ activeDomain }) {
             </div>
           )}
         </div>
-      </div>
-      
-      {/* Session Replayer Panel */}
+      </div>      {/* Right Column: AI Analysis & Visual Replayer */}
       {selectedSessionId && (
-        <div className="glass-card fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '450px' }}>
-          <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>Visual Session Replay</h3>
-              <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Interactive session coordinate tracking</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* AI Journey Summary Card */}
+          <div className="glass-card fade-in" style={{ padding: '16px 20px', background: 'rgba(255,255,255,0.01)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '10px' }}>
+              <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Session Summary</h3>
+              {isGeneratingAi && <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Analyzing...</span>}
             </div>
             
-            <button 
-              onClick={() => {
-                setPlayIndex(-1);
-                setVirtualScroll(0);
-                setVirtualPage('home');
-                setIsPlaying(false);
-              }} 
-              className="btn btn-secondary" 
-              style={{ padding: '4px 10px', fontSize: '11px' }}
+            <pre style={{
+              margin: 0,
+              fontSize: '11px',
+              fontFamily: 'monospace',
+              color: 'var(--text-primary)',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all',
+              lineHeight: '1.5'
+            }}>
+              {displayedSummary || (isGeneratingAi ? 'Parsing user events...' : 'No telemetry data.')}
+            </pre>
+          </div>
+
+          {/* Session Replayer Panel */}
+          <div className="glass-card fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '450px' }}>
+            <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>Visual Session Replay</h3>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Interactive session coordinate tracking</span>
+              </div>
+              
+              <button 
+                onClick={() => {
+                  setPlayIndex(-1);
+                  setVirtualScroll(0);
+                  setVirtualPage('home');
+                  setIsPlaying(false);
+                }} 
+                className="btn btn-secondary" 
+                style={{ padding: '4px 10px', fontSize: '11px' }}
+              >
+                Reset
+              </button>
+            </div>
+
+            {/* Address bar simulator */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', marginBottom: '12px', fontSize: '11px' }}>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+              </div>
+              <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
+                http://localhost:5173/#/example-site/{virtualPage}
+              </div>
+            </div>
+
+            {/* Webpage Viewport Canvas */}
+            <div 
+              ref={viewportRef}
+              style={{
+                flex: 1,
+                height: '240px',
+                minHeight: '240px',
+                background: '#121316',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                overflowY: 'auto',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '16px'
+              }}
             >
-              Reset
-            </button>
-          </div>
+              {/* Click target flash animation */}
+              {clickRipple && (
+                <div style={{
+                  position: 'absolute',
+                  top: `${clickRipple.y % 240}px`,
+                  left: `${clickRipple.x % 320}px`,
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '50%',
+                  border: `3px solid ${clickRipple.type === 'rage_click' ? 'var(--accent-warning)' : (clickRipple.type === 'dead_click' ? '#f59e0b' : 'var(--text-primary)')}`,
+                  transform: 'translate(-50%, -50%)',
+                  animation: 'rippleFlash 0.6s ease-out forwards',
+                  pointerEvents: 'none',
+                  zIndex: 1000
+                }} />
+              )}
 
-          {/* Address bar simulator */}
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', marginBottom: '12px', fontSize: '11px' }}>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
-            </div>
-            <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
-              http://localhost:5173/#/example-site/{virtualPage}
-            </div>
-          </div>
-
-          {/* Webpage Viewport Canvas */}
-          <div 
-            ref={viewportRef}
-            style={{
-              flex: 1,
-              height: '240px',
-              minHeight: '240px',
-              background: '#121316',
-              borderRadius: '8px',
-              border: '1px solid var(--border-color)',
-              overflowY: 'auto',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              padding: '16px'
-            }}
-          >
-            {/* Click target flash animation */}
-            {clickRipple && (
+              {/* Virtual mouse cursor */}
               <div style={{
                 position: 'absolute',
-                top: `${clickRipple.y % 240}px`,
-                left: `${clickRipple.x % 320}px`,
-                width: '30px',
-                height: '30px',
+                top: `${virtualCursor.y % 240}px`,
+                left: `${virtualCursor.x % 320}px`,
+                width: '10px',
+                height: '10px',
                 borderRadius: '50%',
-                border: `3px solid ${clickRipple.type === 'rage_click' ? 'var(--accent-warning)' : (clickRipple.type === 'dead_click' ? '#f59e0b' : 'var(--text-primary)')}`,
+                background: '#fff',
+                border: '2.5px solid #1c1917',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
                 transform: 'translate(-50%, -50%)',
-                animation: 'rippleFlash 0.6s ease-out forwards',
-                pointerEvents: 'none',
-                zIndex: 1000
-              }} />
-            )}
+                transition: 'top 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                zIndex: 999,
+                pointerEvents: 'none'
+              }}>
+                {virtualCursor.action && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-16px',
+                    left: '12px',
+                    background: 'rgba(0,0,0,0.85)',
+                    color: '#fff',
+                    fontSize: '8px',
+                    padding: '2px 5px',
+                    borderRadius: '3px',
+                    whiteSpace: 'nowrap',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    {virtualCursor.action.replace('_', ' ')}
+                  </span>
+                )}
+              </div>
 
-            {/* Virtual mouse cursor */}
-            <div style={{
-              position: 'absolute',
-              top: `${virtualCursor.y % 240}px`,
-              left: `${virtualCursor.x % 320}px`,
-              width: '10px',
-              height: '10px',
-              borderRadius: '50%',
-              background: '#fff',
-              border: '2.5px solid #1c1917',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
-              transform: 'translate(-50%, -50%)',
-              transition: 'top 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-              zIndex: 999,
-              pointerEvents: 'none'
-            }}>
-              {virtualCursor.action && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-16px',
-                  left: '12px',
-                  background: 'rgba(0,0,0,0.85)',
-                  color: '#fff',
-                  fontSize: '8px',
-                  padding: '2px 5px',
-                  borderRadius: '3px',
-                  whiteSpace: 'nowrap',
-                  border: '1px solid var(--border-color)'
-                }}>
-                  {virtualCursor.action.replace('_', ' ')}
-                </span>
-              )}
-            </div>
-
-            {/* Viewport mockup pages */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '340px' }}>
-              {virtualPage === 'home' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <h4 style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>AURA Athletics Store</h4>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '11px', lineHeight: '1.4' }}>
-                    Welcome to the mock running shop! Discover high-performance gear.
-                  </p>
-                  <div style={{ height: '32px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'var(--text-secondary)' }}>
-                    Shop Collection
-                  </div>
-                </div>
-              )}
-
-              {virtualPage === 'products' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <h4 style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>Vortex Sneakers</h4>
-                  <strong style={{ color: 'var(--text-primary)', fontSize: '12px' }}>$149.00 USD</strong>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    {['s', 'm', 'l'].map(sz => (
-                      <div key={sz} style={{ flex: 1, height: '22px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>{sz}</div>
-                    ))}
-                  </div>
-                  <div style={{ height: '28px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-color)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '600', color: '#fff' }}>
-                    Add to Cart
-                  </div>
-                </div>
-              )}
-
-              {virtualPage === 'contact' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <h4 style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>Contact Form</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ height: '24px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '4px', paddingLeft: '8px', fontSize: '10px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
-                      visitor@example.com
-                    </div>
-                    <div style={{ height: '24px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '4px', paddingLeft: '8px', fontSize: '10px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
-                      ••••••••••••
+              {/* Viewport mockup pages */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '340px' }}>
+                {virtualPage === 'home' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <h4 style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>AURA Athletics Store</h4>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '11px', lineHeight: '1.4' }}>
+                      Welcome to the mock running shop! Discover high-performance gear.
+                    </p>
+                    <div style={{ height: '32px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                      Shop Collection
                     </div>
                   </div>
-                  <div style={{ height: '26px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'var(--text-secondary)' }}>
-                    Submit
-                  </div>
-                </div>
-              )}
+                )}
 
-              {virtualPage === 'location' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <h4 style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>Locations HQ</h4>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
-                    Seattle Avenue, Washington, USA.
-                  </p>
-                  <div style={{ height: '60px', background: 'rgba(255,255,255,0.01)', borderRadius: '4px', border: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                    Map Layout
-                  </div>
-                </div>
-              )}
-
-              {virtualPage === 'help' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <h4 style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>FAQs & Guides</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ padding: '6px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px', fontSize: '10.5px', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-                      Returns Policy
+                {virtualPage === 'products' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <h4 style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>Vortex Sneakers</h4>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '12px' }}>$149.00 USD</strong>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {['s', 'm', 'l'].map(sz => (
+                        <div key={sz} style={{ flex: 1, height: '22px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>{sz}</div>
+                      ))}
                     </div>
-                    <div style={{ padding: '6px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px', fontSize: '10.5px', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-                      Shipping Delivery Details
+                    <div style={{ height: '28px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-color)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '600', color: '#fff' }}>
+                      Add to Cart
                     </div>
                   </div>
+                )}
+
+                {virtualPage === 'contact' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <h4 style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>Contact Form</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ height: '24px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '4px', paddingLeft: '8px', fontSize: '10px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
+                        visitor@example.com
+                      </div>
+                      <div style={{ height: '24px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '4px', paddingLeft: '8px', fontSize: '10px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
+                        ••••••••••••
+                      </div>
+                    </div>
+                    <div style={{ height: '26px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                      Submit
+                    </div>
+                  </div>
+                )}
+
+                {virtualPage === 'location' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <h4 style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>Locations HQ</h4>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
+                      Seattle Avenue, Washington, USA.
+                    </p>
+                    <div style={{ height: '60px', background: 'rgba(255,255,255,0.01)', borderRadius: '4px', border: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                      Map Layout
+                    </div>
+                  </div>
+                )}
+
+                {virtualPage === 'help' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <h4 style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>FAQs & Guides</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ padding: '6px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px', fontSize: '10.5px', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+                        Returns Policy
+                      </div>
+                      <div style={{ padding: '6px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px', fontSize: '10.5px', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+                        Shipping Delivery Details
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Control Bar toolbar */}
+            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                <span>Event: {playIndex + 1} / {sessionEvents.length}</span>
+                <span>Scroll: {virtualScroll}%</span>
+              </div>
+
+              <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', position: 'relative', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                <div style={{
+                  width: `${sessionEvents.length > 0 ? ((playIndex + 1) / sessionEvents.length) * 100 : 0}%`,
+                  height: '100%',
+                  background: 'var(--text-primary)',
+                  transition: 'width 0.25s ease-out'
+                }} />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                <button
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 14px', fontSize: '12px', minWidth: '70px' }}
+                  disabled={sessionEvents.length === 0}
+                >
+                  {isPlaying ? 'Pause' : 'Play'}
+                </button>
+
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Speed:</span>
+                  {[1, 2, 4].map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setPlaySpeed(s)}
+                      className="btn"
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        background: playSpeed === s ? 'var(--text-primary)' : 'rgba(255,255,255,0.02)',
+                        color: playSpeed === s ? 'var(--bg-primary)' : 'var(--text-primary)',
+                        border: '1px solid ' + (playSpeed === s ? 'var(--text-primary)' : 'var(--border-color)')
+                      }}
+                    >
+                      {s}x
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Control Bar toolbar */}
-          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
-              <span>Event: {playIndex + 1} / {sessionEvents.length}</span>
-              <span>Scroll: {virtualScroll}%</span>
-            </div>
-
-            <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', position: 'relative', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-              <div style={{
-                width: `${sessionEvents.length > 0 ? ((playIndex + 1) / sessionEvents.length) * 100 : 0}%`,
-                height: '100%',
-                background: 'var(--text-primary)',
-                transition: 'width 0.25s ease-out'
-              }} />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-              <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="btn btn-secondary"
-                style={{ padding: '6px 14px', fontSize: '12px', minWidth: '70px' }}
-                disabled={sessionEvents.length === 0}
-              >
-                {isPlaying ? 'Pause' : 'Play'}
-              </button>
-
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Speed:</span>
-                {[1, 2, 4].map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setPlaySpeed(s)}
-                    className="btn"
-                    style={{
-                      padding: '4px 8px',
-                      fontSize: '11px',
-                      background: playSpeed === s ? 'var(--text-primary)' : 'rgba(255,255,255,0.02)',
-                      color: playSpeed === s ? 'var(--bg-primary)' : 'var(--text-primary)',
-                      border: '1px solid ' + (playSpeed === s ? 'var(--text-primary)' : 'var(--border-color)')
-                    }}
-                  >
-                    {s}x
-                  </button>
-                ))}
               </div>
             </div>
           </div>

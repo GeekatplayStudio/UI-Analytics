@@ -437,3 +437,18 @@ export async function getFrictionMetrics(domainId, sessionId = null) {
   return results.sort((a, b) => b.avg_delay_ms - a.avg_delay_ms);
 }
 
+export async function getFeedback(domainId) {
+  const dbSessions = db.sessions.filter(s => s.domain_id === domainId);
+  const sessionIds = dbSessions.map(s => s.id);
+  const feedbacks = db.events.filter(e => e.event_type === 'user_feedback' && sessionIds.includes(e.session_id));
+  
+  return feedbacks.map(f => ({
+    id: f.id,
+    session_id: f.session_id,
+    page_url: f.page_url,
+    timestamp: f.timestamp,
+    score: f.version || 'none',
+    comments: f.error_message || ''
+  }));
+}
+

@@ -7,15 +7,17 @@ const WIDGET_SPECS = {
   health: { name: 'UI Health & Friction', desc: '3D isometric bars tracking frustrations' },
   scroll: { name: 'Scroll Depth Funnel', desc: 'Horizontal funnel detail of page scroll progression' },
   devices: { name: 'Visitor Systems', desc: 'Distribution of user browser engines' },
-  topElements: { name: 'Top Interacted Elements', desc: 'Hotspots by HTML element ID' }
+  topElements: { name: 'Top Interacted Elements', desc: 'Hotspots by HTML element ID' },
+  feedback: { name: 'Customer Feedback', desc: 'Qualitative rating and review comments' }
 };
 
 export default function Dashboard({ activeDomain }) {
   const [metrics, setMetrics] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [friction, setFriction] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeWidgets, setActiveWidgets] = useState(['traffic', 'interactions', 'health', 'scroll', 'devices', 'topElements']);
+  const [activeWidgets, setActiveWidgets] = useState(['traffic', 'interactions', 'health', 'scroll', 'devices', 'topElements', 'feedback']);
   
   // Interactive tooltips
   const [hoveredDonutIdx, setHoveredDonutIdx] = useState(null);
@@ -45,9 +47,15 @@ export default function Dashboard({ activeDomain }) {
       let fData = [];
       if (fRes.ok) fData = await fRes.json();
 
+      // 4. Fetch customer feedback comments
+      const fbRes = await fetch(`/api/feedback?domain_id=${activeDomain.id}`);
+      let fbData = [];
+      if (fbRes.ok) fbData = await fbRes.json();
+
       setMetrics(mData);
       setSessions(sData);
       setFriction(fData);
+      setFeedbacks(fbData);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -665,6 +673,61 @@ export default function Dashboard({ activeDomain }) {
                         <strong style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{el.interactions} clicks</strong>
                       </div>
                     ))
+                  )}
+                </div>
+              )}
+
+              {/* 7. CUSTOMER FEEDBACK SURVEY REVIEWS */}
+              {wId === 'feedback' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, maxHeight: '220px' }}>
+                  {feedbacks.length === 0 ? (
+                    <div style={{ margin: 'auto', color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center' }}>No qualitative feedback submitted yet.</div>
+                  ) : (
+                    feedbacks.map((fb, idx) => {
+                      const isYes = fb.score === 'YES';
+                      return (
+                        <div key={fb.id || idx} style={{
+                          padding: '10px 12px',
+                          background: 'rgba(255,255,255,0.01)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          fontSize: '12px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <span style={{
+                                background: isYes ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                color: isYes ? 'var(--accent-success)' : 'var(--accent-danger)',
+                                border: isYes ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(239,68,68,0.2)',
+                                padding: '1px 6px',
+                                borderRadius: '3px',
+                                fontSize: '10px',
+                                fontWeight: 'bold'
+                              }}>
+                                EASY TO USE: {isYes ? 'YES' : 'NO'}
+                              </span>
+                              <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                Session: {fb.session_id.substring(0, 8)}...
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                              {new Date(fb.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          
+                          {fb.comments ? (
+                            <p style={{ margin: '2px 0 0', color: 'var(--text-primary)', fontStyle: 'italic', lineHeight: '1.4' }}>
+                              "{fb.comments}"
+                            </p>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(No comments left)</span>
+                          )}
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               )}
