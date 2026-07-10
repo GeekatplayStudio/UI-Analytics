@@ -162,7 +162,9 @@ export default function SessionJourney({ activeDomain }) {
         <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '12px' }}>
           <h3 style={{ fontSize: '16px' }}>Journey Timeline</h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
-            {selectedSessionId ? `Detailed activity sequence for ${selectedSessionId.substring(0, 8)}...` : 'Select a session to view timeline'}
+            {selectedSessionId 
+              ? `Detailed activity sequence for ${selectedSessionId.substring(0, 8)}...` + (sessionEvents[0]?.version ? ` (Tracker: v${sessionEvents[0].version})` : '') 
+              : 'Select a session to view timeline'}
           </p>
         </div>
 

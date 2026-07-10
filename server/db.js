@@ -109,7 +109,8 @@ export async function insertEvents(eventsList) {
       viewport_y: e.viewport_y !== undefined ? e.viewport_y : null,
       scroll_depth_percent: e.scroll_depth_percent !== undefined ? e.scroll_depth_percent : null,
       page_url: e.page_url || '',
-      error_message: e.error_message || null
+      error_message: e.error_message || null,
+      version: e.version || '1.0.0'
     });
   });
 

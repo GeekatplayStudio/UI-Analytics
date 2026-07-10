@@ -76,8 +76,9 @@ export default function App() {
             </svg>
           </div>
           <div>
-            <h1 style={{ fontSize: '22px', fontWeight: 800 }} className="glow-text-rainbow">
+            <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
               EventFlow Analytics
+              <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px', background: 'rgba(6,182,212,0.15)', border: '1px solid rgba(6,182,212,0.3)', color: 'var(--accent-secondary)' }}>v1.2.0</span>
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>High-performance event-level tracking</p>
           </div>

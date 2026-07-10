@@ -3,6 +3,8 @@
   if (window.__eventflow_initialized) return;
   window.__eventflow_initialized = true;
 
+  const TRACKER_VERSION = '1.2.0';
+
   // Configuration and state
   let domainId = null;
   let sessionId = null;
@@ -97,6 +99,7 @@
       timestamp: now,
       time_delta_ms: timeDelta,
       page_url: window.location.href,
+      version: TRACKER_VERSION,
       ...details
     };
 
