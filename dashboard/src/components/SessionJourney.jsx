@@ -6,6 +6,16 @@ export default function SessionJourney({ activeDomain }) {
   const [sessionEvents, setSessionEvents] = useState([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [expandedEventIds, setExpandedEventIds] = useState(new Set());
+
+  const toggleStack = (id) => {
+    setExpandedEventIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Fetch sessions for active domain
   useEffect(() => {
@@ -63,13 +73,16 @@ export default function SessionJourney({ activeDomain }) {
 
   const getEventIcon = (type) => {
     switch (type) {
-      case 'init': return '🚀';
-      case 'click': return '🖱️';
-      case 'scroll': return '📜';
-      case 'input_focus': return '🔍';
-      case 'input_change': return '✏️';
-      case 'input_type': return '⌨️';
-      default: return '⚡';
+      case 'init': return 'I';
+      case 'click': return 'C';
+      case 'scroll': return 'S';
+      case 'input_focus': return 'F';
+      case 'input_change': return 'M';
+      case 'input_type': return 'K';
+      case 'js_error': return 'E';
+      case 'console_error': return 'W';
+      case 'network_request': return 'N';
+      default: return '•';
     }
   };
 
@@ -184,6 +197,23 @@ export default function SessionJourney({ activeDomain }) {
                 const elapsedMs = e.timestamp - sessionEvents[0].timestamp;
                 const elapsedStr = idx === 0 ? 'Start' : `+${formatDuration(elapsedMs)}`;
                 
+                const isError = e.event_type === 'js_error' || e.event_type === 'console_error';
+                const isNetwork = e.event_type === 'network_request';
+
+                let cardBorder = 'var(--border-color)';
+                let iconBorder = 'var(--accent-primary)';
+                if (e.event_type === 'init') {
+                  iconBorder = 'var(--text-muted)';
+                } else if (isError) {
+                  cardBorder = 'var(--accent-warning)';
+                  iconBorder = 'var(--accent-warning)';
+                } else if (isNetwork) {
+                  cardBorder = e.status === 200 || e.status === 201 || e.status === 204 || e.status === 304
+                    ? 'rgba(255,255,255,0.06)'
+                    : 'var(--accent-danger)';
+                  iconBorder = 'var(--text-secondary)';
+                }
+
                 return (
                   <div key={e.id} style={{ position: 'relative', marginBottom: isLast ? '0px' : '20px' }}>
                     {/* Timeline Node Icon */}
@@ -195,11 +225,13 @@ export default function SessionJourney({ activeDomain }) {
                       height: '24px',
                       borderRadius: '50%',
                       background: 'var(--bg-secondary)',
-                      border: '2px solid ' + (e.event_type === 'init' ? 'var(--accent-success)' : 'var(--accent-primary)'),
+                      border: `2px solid ${iconBorder}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '12px'
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      color: isError ? 'var(--accent-warning)' : 'var(--text-secondary)'
                     }}>
                       {getEventIcon(e.event_type)}
                     </div>
@@ -209,13 +241,13 @@ export default function SessionJourney({ activeDomain }) {
                       padding: '12px',
                       background: 'rgba(255, 255, 255, 0.02)',
                       borderRadius: '8px',
-                      border: '1px solid var(--border-color)',
+                      border: `1px solid ${cardBorder}`,
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '4px'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff', textTransform: 'capitalize' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: isError ? 'var(--accent-warning)' : '#fff', textTransform: 'capitalize' }}>
                           {e.event_type.replace('_', ' ')}
                         </span>
                         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -223,8 +255,8 @@ export default function SessionJourney({ activeDomain }) {
                             {elapsedStr}
                           </span>
                           {idx > 0 && (
-                            <span className="badge badge-primary" style={{ fontSize: '9px', padding: '2px 6px', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-success)', border: '1px solid rgba(16,185,129,0.2)' }}>
-                              ⏳ +{e.time_delta_ms}ms
+                            <span className="badge badge-primary" style={{ fontSize: '9px', padding: '2px 6px', background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>
+                              +{e.time_delta_ms}ms
                             </span>
                           )}
                         </div>
@@ -232,27 +264,118 @@ export default function SessionJourney({ activeDomain }) {
 
                       {/* Details of Event */}
                       <div style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px', paddingLeft: '4px' }}>
-                        {e.page_url && (
-                          <span style={{ wordBreak: 'break-all' }}>
-                            📍 URL: <code style={{ color: 'var(--accent-secondary)' }}>{new URL(e.page_url).pathname || '/'}</code>
-                          </span>
+                        {isError && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <span style={{ color: '#fff', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                              {e.error_message}
+                            </span>
+                            {e.stack && (
+                              <div>
+                                <button
+                                  onClick={() => toggleStack(e.id)}
+                                  className="btn btn-secondary"
+                                  style={{ padding: '2px 8px', fontSize: '10px', marginTop: '4px' }}
+                                >
+                                  {expandedEventIds.has(e.id) ? 'Hide Stack Trace' : 'Show Stack Trace'}
+                                </button>
+                                {expandedEventIds.has(e.id) && (
+                                  <pre style={{
+                                    background: 'rgba(0,0,0,0.3)',
+                                    padding: '8px',
+                                    borderRadius: '4px',
+                                    overflowX: 'auto',
+                                    fontSize: '10.5px',
+                                    color: 'var(--text-muted)',
+                                    marginTop: '6px',
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-all'
+                                  }}>
+                                    {e.stack}
+                                  </pre>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )}
-                        {e.element_tag && (
-                          <span>
-                            DOM Element: <strong style={{ color: '#fff' }}>&lt;{e.element_tag.toLowerCase()}&gt;</strong>
-                            {e.element_id && ` id="${e.element_id}"`}
-                          </span>
+
+                        {isNetwork && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                              <span style={{
+                                background: 'rgba(255,255,255,0.08)',
+                                padding: '1px 6px',
+                                borderRadius: '3px',
+                                fontSize: '10.5px',
+                                fontWeight: 'bold',
+                                color: 'var(--text-primary)'
+                              }}>
+                                {e.method}
+                              </span>
+                              <span style={{
+                                background: e.status === 200 || e.status === 201 || e.status === 204 || e.status === 304
+                                  ? 'rgba(16, 185, 129, 0.1)'
+                                  : 'rgba(239, 68, 68, 0.1)',
+                                color: e.status === 200 || e.status === 201 || e.status === 204 || e.status === 304
+                                  ? 'var(--accent-success)'
+                                  : 'var(--accent-danger)',
+                                border: e.status === 200 || e.status === 201 || e.status === 204 || e.status === 304
+                                  ? '1px solid rgba(16, 185, 129, 0.2)'
+                                  : '1px solid rgba(239, 68, 68, 0.2)',
+                                padding: '1px 6px',
+                                borderRadius: '3px',
+                                fontSize: '10.5px',
+                                fontWeight: 'bold'
+                              }}>
+                                {e.status === 0 ? 'Network Error' : e.status}
+                              </span>
+                              <span style={{ color: 'var(--text-muted)' }}>
+                                Duration: <strong>{e.duration_ms}ms</strong>
+                              </span>
+                            </div>
+                            <span style={{ wordBreak: 'break-all', fontFamily: 'monospace', color: 'var(--text-primary)', marginTop: '2px' }}>
+                              {e.element_id}
+                            </span>
+                            {e.error_message && (
+                              <span style={{ color: 'var(--accent-danger)', fontSize: '11px', fontStyle: 'italic' }}>
+                                Error: {e.error_message}
+                              </span>
+                            )}
+                          </div>
                         )}
-                        {e.viewport_x !== null && (
-                          <span>Coordinates: Clicked at ({e.viewport_x}px, {e.viewport_y}px) in viewport</span>
-                        )}
-                        {e.scroll_depth_percent !== null && (
-                          <span>Scroll Depth: Reached <strong style={{ color: 'var(--accent-success)' }}>{e.scroll_depth_percent}%</strong> of the page height</span>
-                        )}
-                        {isSensitive && (
-                          <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: '10px', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            🛡️ PII Stripped. Content excluded from ingestion pipeline.
-                          </span>
+
+                        {!isError && !isNetwork && (
+                          <>
+                            {e.page_url && (
+                              <span style={{ wordBreak: 'break-all' }}>
+                                URL: <code style={{ color: 'var(--text-primary)' }}>
+                                  {(() => {
+                                    try {
+                                      return new URL(e.page_url).pathname + (new URL(e.page_url).hash || '');
+                                    } catch(err) {
+                                      return e.page_url;
+                                    }
+                                  })()}
+                                </code>
+                              </span>
+                            )}
+                            {e.element_tag && (
+                              <span>
+                                DOM Element: <strong style={{ color: '#fff' }}>&lt;{e.element_tag.toLowerCase()}&gt;</strong>
+                                {e.element_id && ` id="${e.element_id}"`}
+                              </span>
+                            )}
+                            {e.viewport_x !== null && (
+                              <span>Coordinates: Clicked at ({e.viewport_x}px, {e.viewport_y}px) in viewport</span>
+                            )}
+                            {e.scroll_depth_percent !== null && (
+                              <span>Scroll Depth: Reached <strong style={{ color: 'var(--text-secondary)' }}>{e.scroll_depth_percent}%</strong> of page</span>
+                            )}
+                            {isSensitive && (
+                              <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: '10px', marginTop: '4px' }}>
+                                PII Stripped. Content excluded from ingestion pipeline.
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>

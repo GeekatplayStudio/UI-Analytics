@@ -339,6 +339,70 @@
         }, 150);
       }
     }, true);
+
+    // JS Exceptions Capture
+    window.addEventListener('error', function(e) {
+      queueEvent('js_error', {
+        error_message: e.message || 'Uncaught Exception',
+        stack: e.error ? e.error.stack : `${e.message} at ${e.filename}:${e.lineno}:${e.colno}`
+      });
+    });
+
+    // Console Errors Overrides
+    const originalConsoleError = console.error;
+    console.error = function() {
+      const args = Array.prototype.slice.call(arguments);
+      const message = args.map(arg => {
+        if (arg instanceof Error) return arg.message + '\n' + arg.stack;
+        if (typeof arg === 'object') {
+          try { return JSON.stringify(arg); } catch(err) { return String(arg); }
+        }
+        return String(arg);
+      }).join(' ');
+
+      queueEvent('console_error', {
+        error_message: message || 'Console error'
+      });
+      originalConsoleError.apply(console, args);
+    };
+
+    // Fetch API Roundtrip Interception
+    const originalFetch = window.fetch;
+    window.fetch = async function(input, init) {
+      const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : '');
+      const method = (init && init.method) || (input instanceof Request ? input.method : 'GET');
+
+      if (url.includes('/api/collect')) {
+        return originalFetch.apply(this, arguments);
+      }
+
+      const startTime = Date.now();
+      try {
+        const response = await originalFetch.apply(this, arguments);
+        const duration = Date.now() - startTime;
+
+        queueEvent('network_request', {
+          page_url: window.location.href,
+          element_id: url.substring(0, 120),
+          method: method.toUpperCase(),
+          status: response.status,
+          duration_ms: duration
+        });
+
+        return response;
+      } catch (err) {
+        const duration = Date.now() - startTime;
+        queueEvent('network_request', {
+          page_url: window.location.href,
+          element_id: url.substring(0, 120),
+          method: method.toUpperCase(),
+          status: 0,
+          duration_ms: duration,
+          error_message: err.message || 'Fetch connection error'
+        });
+        throw err;
+      }
+    };
   }
 
   // Handle EventFlow queued calls before tracker loaded

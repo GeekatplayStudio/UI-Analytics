@@ -41,7 +41,12 @@ export default function Sandbox({ activeDomain }) {
         elTag: eventData.element_tag,
         elClass: eventData.element_class,
         depth: eventData.scroll_depth_percent,
-        coords: eventData.viewport_x !== null ? `(${eventData.viewport_x}, ${eventData.viewport_y})` : null
+        coords: eventData.viewport_x !== null ? `(${eventData.viewport_x}, ${eventData.viewport_y})` : null,
+        errorMessage: eventData.error_message,
+        stack: eventData.stack,
+        method: eventData.method,
+        status: eventData.status,
+        duration: eventData.duration_ms
       }]);
     };
 
@@ -266,6 +271,42 @@ export default function Sandbox({ activeDomain }) {
             <button id="subscribe-btn" className="btn btn-secondary" style={{ padding: '8px', fontSize: '13px' }} type="button">
               Submit Form
             </button>
+
+            {/* Developer Diagnostics sandbox panel */}
+            <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '16px', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Developer Diagnostics Sandbox</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Click buttons below to trigger diagnostic events:</span>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  id="trigger-console-error-btn"
+                  onClick={() => console.error("Telemetry validation: Database token expired")}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 10px', fontSize: '11px', flex: 1, minWidth: '120px' }}
+                >
+                  Log Console Error
+                </button>
+                <button
+                  id="trigger-js-exception-btn"
+                  onClick={() => {
+                    setTimeout(() => {
+                      throw new Error("ReferenceError: activeDomainContext is not defined");
+                    }, 10);
+                  }}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 10px', fontSize: '11px', flex: 1, minWidth: '120px', color: 'var(--accent-warning)', borderColor: 'rgba(217, 119, 6, 0.2)' }}
+                >
+                  Throw JS Exception
+                </button>
+                <button
+                  id="trigger-failed-fetch-btn"
+                  onClick={() => fetch('/api/v1/simulated-broken-api-route')}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 10px', fontSize: '11px', flex: 1, minWidth: '120px' }}
+                >
+                  Trigger 404 Fetch
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -310,25 +351,71 @@ export default function Sandbox({ activeDomain }) {
           ) : (
             logs.map(log => {
               const isSensitive = log.elClass?.includes('sensitive') || log.elId?.includes('password') || log.elId?.includes('email') || log.elId?.includes('private');
+              const isErrorLog = log.type === 'js_error' || log.type === 'console_error';
+              const isNetworkLog = log.type === 'network_request';
+
               return (
                 <div key={log.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    color: isErrorLog ? 'var(--accent-warning)' : 'var(--text-secondary)',
+                    fontWeight: 600
+                  }}>
                     <span>event_type: {log.type}</span>
                     <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{log.time}</span>
                   </div>
                   <div style={{ paddingLeft: '12px', marginTop: '2px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    {log.elTag && <span>tag: <strong style={{ color: '#fff' }}>{log.elTag}</strong></span>}
-                    {log.elId && <span>id: <strong style={{ color: 'var(--text-primary)' }}>{log.elId}</strong></span>}
-                    {log.elClass && (
-                      <span>classes: <strong style={{ color: 'var(--text-muted)' }}>{log.elClass}</strong></span>
+                    {isErrorLog && (
+                      <>
+                        <span style={{ color: '#fff', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                          {log.errorMessage}
+                        </span>
+                        {log.stack && (
+                          <pre style={{
+                            background: 'rgba(0,0,0,0.2)',
+                            padding: '6px',
+                            borderRadius: '4px',
+                            fontSize: '9.5px',
+                            color: 'var(--text-muted)',
+                            overflowX: 'auto',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-all'
+                          }}>
+                            {log.stack}
+                          </pre>
+                        )}
+                      </>
                     )}
-                    {log.coords && <span>coordinates: {log.coords}</span>}
-                    {log.depth !== undefined && <span>scroll_depth: {log.depth}%</span>}
-                    {log.delta !== undefined && <span>time_delta: <strong>+{log.delta}ms</strong></span>}
-                    {isSensitive && (
-                      <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', marginTop: '2px' }}>
-                        PII PROTECTION ENFORCED (NO VALUE CAPTURED)
-                      </span>
+
+                    {isNetworkLog && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ color: '#fff', wordBreak: 'break-all' }}>
+                          url: <code style={{ color: 'var(--text-primary)' }}>{log.elId}</code>
+                        </span>
+                        <span>
+                          method: <strong>{log.method}</strong> | status: <strong style={{ color: log.status === 200 || log.status === 304 ? 'var(--accent-success)' : 'var(--accent-danger)' }}>{log.status === 0 ? 'Failed' : log.status}</strong> | duration: <strong>{log.duration}ms</strong>
+                        </span>
+                        {log.errorMessage && <span style={{ color: 'var(--accent-danger)' }}>error: {log.errorMessage}</span>}
+                      </div>
+                    )}
+
+                    {!isErrorLog && !isNetworkLog && (
+                      <>
+                        {log.elTag && <span>tag: <strong style={{ color: '#fff' }}>{log.elTag}</strong></span>}
+                        {log.elId && <span>id: <strong style={{ color: 'var(--text-primary)' }}>{log.elId}</strong></span>}
+                        {log.elClass && (
+                          <span>classes: <strong style={{ color: 'var(--text-muted)' }}>{log.elClass}</strong></span>
+                        )}
+                        {log.coords && <span>coordinates: {log.coords}</span>}
+                        {log.depth !== undefined && <span>scroll_depth: {log.depth}%</span>}
+                        {log.delta !== undefined && <span>time_delta: <strong>+{log.delta}ms</strong></span>}
+                        {isSensitive && (
+                          <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', marginTop: '2px' }}>
+                            PII PROTECTION ENFORCED (NO VALUE CAPTURED)
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

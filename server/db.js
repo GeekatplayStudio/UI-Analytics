@@ -184,7 +184,11 @@ export async function insertEvents(eventsList) {
       scroll_depth_percent: e.scroll_depth_percent !== undefined ? e.scroll_depth_percent : null,
       page_url: e.page_url || '',
       error_message: e.error_message || null,
-      version: e.version || '1.0.0'
+      version: e.version || '1.0.0',
+      stack: e.stack || null,
+      method: e.method || null,
+      status: e.status !== undefined ? e.status : null,
+      duration_ms: e.duration_ms !== undefined ? e.duration_ms : null
     });
   });
 
