@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 const MISSIONS = [
   {
     id: 'product_researcher',
-    title: 'Mission: Product Researcher 👟',
+    title: 'Mission: Product Researcher',
     description: 'Explore our catalog, examine product specs, and select your sneakers.',
     steps: [
       { id: 'nav_products', label: 'Navigate to the Products page', check: (evs) => evs.some(e => e.page_url?.includes('#/example-site/products')) },
@@ -18,7 +18,7 @@ const MISSIONS = [
   },
   {
     id: 'customer_support',
-    title: 'Mission: Customer Support Inquiry 📞',
+    title: 'Mission: Customer Support Inquiry',
     description: 'Find our local store hours and submit an inquiry about a product shipment.',
     steps: [
       { id: 'nav_location', label: 'Navigate to the Location page', check: (evs) => evs.some(e => e.page_url?.includes('#/example-site/location')) },
@@ -29,7 +29,7 @@ const MISSIONS = [
   },
   {
     id: 'ux_frustration_test',
-    title: 'Mission: Telemetry Frustration Test 😡',
+    title: 'Mission: Telemetry Frustration Test',
     description: 'Intentionally trigger UX warning logs to verify error validation highlights.',
     steps: [
       { id: 'nav_help', label: 'Navigate to the Help / FAQ page', check: (evs) => evs.some(e => e.page_url?.includes('#/example-site/help')) },
@@ -155,19 +155,19 @@ export default function ExampleSite({ activeDomain }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Floating Mission Task Panel */}
-      <div className="glass-card fade-in" style={{ border: '2px solid var(--accent-secondary)', background: 'rgba(6, 182, 212, 0.05)' }}>
+      <div className="glass-card fade-in" style={{ border: '1px solid var(--border-color)', background: 'rgba(255, 255, 255, 0.02)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '12px' }}>
           <div>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent-secondary)', textTransform: 'uppercase' }}>Active Walkthrough Mission</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Active Walkthrough Mission</span>
             <h2 style={{ fontSize: '16px', color: '#fff', marginTop: '2px' }}>{activeMission.title}</h2>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{activeMission.description}</p>
           </div>
           <button 
             onClick={handleResetMission} 
             className="btn btn-secondary" 
-            style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--accent-warning)', borderColor: 'rgba(245, 158, 11, 0.3)' }}
+            style={{ padding: '6px 12px', fontSize: '12px' }}
           >
-            🎲 Next Mission
+            Next Mission
           </button>
         </div>
 
@@ -183,14 +183,14 @@ export default function ExampleSite({ activeDomain }) {
                   gap: '10px', 
                   alignItems: 'center', 
                   fontSize: '12.5px',
-                  background: isDone ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255,255,255,0.01)',
+                  background: isDone ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255,255,255,0.01)',
                   padding: '8px 12px',
                   borderRadius: '6px',
-                  border: '1px solid ' + (isDone ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-color)')
+                  border: '1px solid ' + (isDone ? 'rgba(255, 255, 255, 0.15)' : 'var(--border-color)')
                 }}
               >
-                <span style={{ fontSize: '16px' }}>{isDone ? '✅' : '⬜'}</span>
-                <span style={{ color: isDone ? '#fff' : 'var(--text-secondary)', textDecoration: isDone ? 'line-through' : 'none' }}>
+                <span style={{ fontSize: '12px', fontFamily: 'monospace', color: isDone ? 'var(--text-primary)' : 'var(--text-muted)' }}>{isDone ? '[x]' : '[ ]'}</span>
+                <span style={{ color: isDone ? 'var(--text-muted)' : 'var(--text-secondary)', textDecoration: isDone ? 'line-through' : 'none' }}>
                   {step.label}
                 </span>
               </div>
@@ -510,13 +510,12 @@ export default function ExampleSite({ activeDomain }) {
           zIndex: 9999,
           animation: 'fadeIn 0.3s ease'
         }}>
-          <div className="glass-card" style={{ maxWidth: '400px', textAlign: 'center', border: '2px solid var(--accent-success)', boxShadow: '0 0 30px rgba(16, 185, 129, 0.3)', display: 'flex', flexDirection: 'column', gap: '16px', padding: '32px' }}>
-            <span style={{ fontSize: '48px' }}>🏆</span>
-            <h2 style={{ fontSize: '20px', color: '#fff' }}>Mission Accomplished!</h2>
-            <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-              Awesome! You followed the user flow perfectly. All your events have been batched, sent, and compiled in the database.
+          <div className="glass-card" style={{ maxWidth: '400px', textAlign: 'center', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '16px', padding: '32px' }}>
+            <h2 style={{ fontSize: '18px', color: '#fff' }}>Mission Completed</h2>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              You have completed the walkthrough sequence. The tracking telemetry has been captured and compiled in the database.
             </p>
-            <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '10px', borderRadius: '6px', fontSize: '12px', color: 'var(--accent-success)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px', borderRadius: '6px', fontSize: '12px', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
               Session Tagged: <strong>{sessionStorage.getItem('ef_session_id')?.substring(0, 18)}...</strong>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>

@@ -97,7 +97,7 @@ export default function App() {
             style={{ borderColor: showConfig ? 'var(--accent-primary)' : 'var(--border-color)' }}
             onClick={() => setShowConfig(!showConfig)}
           >
-            ⚙️ Snippet Setup
+            Snippet Setup
           </button>
         </div>
       </header>
@@ -121,13 +121,13 @@ export default function App() {
         paddingBottom: '2px'
       }}>
         {[
-          { id: 'metrics', label: '📊 Stats Overview' },
-          { id: 'journey', label: '🗺️ User Journeys' },
-          { id: 'funnels', label: '⏳ Funnel Conversions' },
-          { id: 'friction', label: '🔍 UX Friction Overlay' },
-          { id: 'example', label: '🎮 Demo Walkthrough' },
-          { id: 'integration', label: '🔌 Site Integration' },
-          { id: 'sandbox', label: '🧪 Live Sandbox' }
+          { id: 'metrics', label: 'Stats Overview' },
+          { id: 'journey', label: 'User Journeys' },
+          { id: 'funnels', label: 'Funnel Conversions' },
+          { id: 'friction', label: 'UX Friction Overlay' },
+          { id: 'example', label: 'Demo Walkthrough' },
+          { id: 'integration', label: 'Site Integration' },
+          { id: 'sandbox', label: 'Live Sandbox' }
         ].map(tab => (
           <button
             key={tab.id}

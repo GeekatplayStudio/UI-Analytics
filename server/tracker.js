@@ -30,14 +30,12 @@
 
   // Helper: Get or create session ID
   function getSessionId() {
-    if (!sessionId) {
-      sessionId = sessionStorage.getItem('ef_session_id');
-      if (!sessionId) {
-        sessionId = generateUUID();
-        sessionStorage.setItem('ef_session_id', sessionId);
-      }
+    let currentSessionId = sessionStorage.getItem('ef_session_id');
+    if (!currentSessionId) {
+      currentSessionId = generateUUID();
+      sessionStorage.setItem('ef_session_id', currentSessionId);
     }
-    return sessionId;
+    return currentSessionId;
   }
 
   // Helper: Extract element descriptors safely
@@ -316,6 +314,13 @@
     setInterval(function() {
       transmitEvents(false);
     }, 2000);
+
+    // Listen to hash change to capture SPA navigation events
+    window.addEventListener('hashchange', function() {
+      queueEvent('page_view', {
+        page_url: window.location.href
+      });
+    });
 
     // Form Field Validation Error Tracking (PII Protected)
     document.addEventListener('focusout', function(e) {

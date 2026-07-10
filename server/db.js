@@ -42,6 +42,79 @@ export async function initDb() {
       saveDb();
       console.log('[EventFlow Database] Created new database.json.');
     }
+    // Seed walkthrough scenarios if missing
+    const seededResearcherId = 'walkthrough-seeded-researcher';
+    const seededSupportId = 'walkthrough-seeded-support';
+    const seededFrustrationId = 'walkthrough-seeded-frustration';
+
+    const hasResearcher = db.sessions.some(s => s.id === seededResearcherId);
+    if (!hasResearcher) {
+      db.sessions.push({
+        id: seededResearcherId,
+        domain_id: 'demo-domain-id-1234',
+        user_agent: 'Chrome / macOS (Walkthrough Demo)',
+        ip_address: '127.0.0.1',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      db.sessions.push({
+        id: seededSupportId,
+        domain_id: 'demo-domain-id-1234',
+        user_agent: 'Safari / iOS (Walkthrough Demo)',
+        ip_address: '127.0.0.1',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      db.sessions.push({
+        id: seededFrustrationId,
+        domain_id: 'demo-domain-id-1234',
+        user_agent: 'Firefox / Windows (Walkthrough Demo)',
+        ip_address: '127.0.0.1',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+
+      const baseTime = Date.now();
+      db.events.push(
+        { id: db.events.length + 1, session_id: seededResearcherId, event_type: 'init', timestamp: baseTime, time_delta_ms: 0, page_url: 'http://localhost:5173/#/example-site/home', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededResearcherId, event_type: 'click', timestamp: baseTime + 2000, time_delta_ms: 2000, element_id: 'ex-nav-products-link', element_tag: 'BUTTON', page_url: 'http://localhost:5173/#/example-site/home', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededResearcherId, event_type: 'page_view', timestamp: baseTime + 2100, time_delta_ms: 100, page_url: 'http://localhost:5173/#/example-site/products', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededResearcherId, event_type: 'click', timestamp: baseTime + 5000, time_delta_ms: 2900, element_id: 'prod-link-vortex', element_tag: 'BUTTON', page_url: 'http://localhost:5173/#/example-site/products', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededResearcherId, event_type: 'click', timestamp: baseTime + 8000, time_delta_ms: 3000, element_id: 'prod-link-helium', element_tag: 'BUTTON', page_url: 'http://localhost:5173/#/example-site/products', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededResearcherId, event_type: 'click', timestamp: baseTime + 12000, time_delta_ms: 4000, element_id: 'prod-link-trail', element_tag: 'BUTTON', page_url: 'http://localhost:5173/#/example-site/products', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededResearcherId, event_type: 'click', timestamp: baseTime + 15000, time_delta_ms: 3000, element_id: 'ex-add-to-cart-btn', element_tag: 'BUTTON', page_url: 'http://localhost:5173/#/example-site/products', version: '1.2.0' }
+      );
+
+      db.events.push(
+        { id: db.events.length + 1, session_id: seededSupportId, event_type: 'init', timestamp: baseTime, time_delta_ms: 0, page_url: 'http://localhost:5173/#/example-site/home', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededSupportId, event_type: 'click', timestamp: baseTime + 3000, time_delta_ms: 3000, element_id: 'ex-nav-location-link', element_tag: 'BUTTON', page_url: 'http://localhost:5173/#/example-site/home', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededSupportId, event_type: 'page_view', timestamp: baseTime + 3100, time_delta_ms: 100, page_url: 'http://localhost:5173/#/example-site/location', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededSupportId, event_type: 'click', timestamp: baseTime + 6000, time_delta_ms: 2900, element_id: 'ex-nav-contact-link', element_tag: 'BUTTON', page_url: 'http://localhost:5173/#/example-site/location', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededSupportId, event_type: 'page_view', timestamp: baseTime + 6100, time_delta_ms: 100, page_url: 'http://localhost:5173/#/example-site/contact', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededSupportId, event_type: 'input_focus', timestamp: baseTime + 9000, time_delta_ms: 2900, element_id: 'ex-email-input', element_tag: 'INPUT', page_url: 'http://localhost:5173/#/example-site/contact', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededSupportId, event_type: 'input_type', timestamp: baseTime + 11000, time_delta_ms: 2000, element_id: 'ex-email-input', element_tag: 'INPUT', page_url: 'http://localhost:5173/#/example-site/contact', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededSupportId, event_type: 'click', timestamp: baseTime + 15000, time_delta_ms: 4000, element_id: 'ex-contact-submit-btn', element_tag: 'BUTTON', page_url: 'http://localhost:5173/#/example-site/contact', version: '1.2.0' }
+      );
+
+      db.events.push(
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'init', timestamp: baseTime, time_delta_ms: 0, page_url: 'http://localhost:5173/#/example-site/home', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'click', timestamp: baseTime + 3000, time_delta_ms: 3000, element_id: 'ex-nav-help-link', element_tag: 'BUTTON', page_url: 'http://localhost:5173/#/example-site/home', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'page_view', timestamp: baseTime + 3100, time_delta_ms: 100, page_url: 'http://localhost:5173/#/example-site/help', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'click', timestamp: baseTime + 6000, time_delta_ms: 2900, element_id: 'faq-title-0', element_tag: 'H4', page_url: 'http://localhost:5173/#/example-site/help', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'click', timestamp: baseTime + 6200, time_delta_ms: 200, element_id: 'faq-title-0', element_tag: 'H4', page_url: 'http://localhost:5173/#/example-site/help', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'click', timestamp: baseTime + 6400, time_delta_ms: 200, element_id: 'faq-title-0', element_tag: 'H4', page_url: 'http://localhost:5173/#/example-site/help', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'rage_click', timestamp: baseTime + 6400, time_delta_ms: 0, element_id: 'faq-title-0', element_tag: 'H4', page_url: 'http://localhost:5173/#/example-site/help', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'click', timestamp: baseTime + 12000, time_delta_ms: 5600, element_id: 'ex-nav-products-link', element_tag: 'BUTTON', page_url: 'http://localhost:5173/#/example-site/help', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'page_view', timestamp: baseTime + 12100, time_delta_ms: 100, page_url: 'http://localhost:5173/#/example-site/products', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'click', timestamp: baseTime + 15000, time_delta_ms: 2900, element_id: 'ex-logo-container', element_tag: 'DIV', page_url: 'http://localhost:5173/#/example-site/products', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'click', timestamp: baseTime + 15200, time_delta_ms: 200, element_id: 'ex-logo-container', element_tag: 'DIV', page_url: 'http://localhost:5173/#/example-site/products', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'click', timestamp: baseTime + 15400, time_delta_ms: 200, element_id: 'ex-logo-container', element_tag: 'DIV', page_url: 'http://localhost:5173/#/example-site/products', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'dead_click', timestamp: baseTime + 15400, time_delta_ms: 0, element_id: 'ex-logo-container', element_tag: 'DIV', page_url: 'http://localhost:5173/#/example-site/products', version: '1.2.0' },
+        { id: db.events.length + 1, session_id: seededFrustrationId, event_type: 'click', timestamp: baseTime + 19000, time_delta_ms: 3600, element_id: 'ex-checkout-btn', element_tag: 'BUTTON', page_url: 'http://localhost:5173/#/example-site/products', version: '1.2.0' }
+      );
+      saveDb();
+      console.log('[EventFlow Database] Seeded walkthrough demo scenarios successfully.');
+    }
   } catch (error) {
     console.error('[EventFlow Database] Initialization error:', error);
   }

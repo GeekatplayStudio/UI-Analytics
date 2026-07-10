@@ -283,7 +283,7 @@ export default function FrictionAnalysis({ activeDomain }) {
               <option value="">All Sessions (Aggregate Average)</option>
               {sessions.map(s => (
                 <option key={s.id} value={s.id}>
-                  {s.id.startsWith('walkthrough-') ? `🎮 Mission Session: ${s.id.substring(20, 26)}` : `Session: ${s.id.substring(0, 8)}...`} ({s.event_count} events)
+                  {s.id.startsWith('walkthrough-') ? `Walkthrough: ${s.id.substring(12, 22)}` : `Session: ${s.id.substring(0, 8)}...`} ({s.event_count} events)
                 </option>
               ))}
             </select>
